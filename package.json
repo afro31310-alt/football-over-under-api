@@ -1,1 +1,13 @@
-
+{
+  "name": "football-over-under-api",
+  "version": "1.0.0",
+  "description": "Football Over/Under prediction backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
