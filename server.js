@@ -23,11 +23,36 @@ app.get("/", (req, res) => {
 
 // FORMAT DATE
 function formatDate(date) {
-  return date.toISOString().split("T")[0];
+  return date.toISOString().slice(0, 10);
 }
 
 
-// GET UPCOMING MATCHES
+// GET FIXTURES FOR ONE DATE
+async function getFixtures(date) {
+
+  const url =
+    `${API_URL}/fixtures?date=${date}`;
+
+  const response = await fetch(url, {
+    headers: {
+      "x-apisports-key": API_KEY
+    }
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+      `API returned ${response.status}`
+    );
+  }
+
+  return data.response || [];
+}
+
+
+// MATCHES
 app.get("/api/matches", async (req, res) => {
 
   try {
@@ -40,100 +65,77 @@ app.get("/api/matches", async (req, res) => {
     }
 
 
+    const matches = [];
+
     const today = new Date();
 
-    const future = new Date(today);
 
-    future.setUTCDate(
-      future.getUTCDate() + 7
-    );
+    // Check today + next 6 days
+    for (let i = 0; i < 7; i++) {
 
+      const date = new Date(today);
 
-    const from = formatDate(today);
-    const to = formatDate(future);
-
-
-    console.log(
-      `Loading fixtures from ${from} to ${to}`
-    );
-
-
-    const url =
-      `${API_URL}/fixtures?from=${from}&to=${to}`;
-
-
-    const response = await fetch(url, {
-      headers: {
-        "x-apisports-key": API_KEY
-      }
-    });
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        `Football API returned ${response.status}`
+      date.setUTCDate(
+        date.getUTCDate() + i
       );
 
-    }
+      const dateString =
+        formatDate(date);
 
 
-    const data = await response.json();
+      console.log(
+        `Checking ${dateString}`
+      );
 
 
-    const fixtures =
-      data.response || [];
+      const fixtures =
+        await getFixtures(dateString);
 
 
-    // Only upcoming matches
-    const upcoming =
-      fixtures.filter(match => {
+      for (const fixture of fixtures) {
 
         const status =
-          match.fixture?.status?.short;
-
-        return (
-          status === "NS" ||
-          status === "TBD"
-        );
-
-      });
+          fixture.fixture?.status?.short;
 
 
-    // Convert API data for website
-    const matches =
-      upcoming.map(match => {
+        // Only upcoming fixtures
+        if (
+          status !== "NS" &&
+          status !== "TBD"
+        ) {
+          continue;
+        }
 
-        return {
 
-          id: match.fixture.id,
+        matches.push({
+
+          id: fixture.fixture.id,
 
           league:
-            match.league?.name ||
+            fixture.league?.name ||
             "Football",
 
           country:
-            match.league?.country ||
+            fixture.league?.country ||
             "",
 
           home:
-            match.teams?.home?.name ||
+            fixture.teams?.home?.name ||
             "Home Team",
 
           away:
-            match.teams?.away?.name ||
+            fixture.teams?.away?.name ||
             "Away Team",
 
           time:
-            match.fixture?.date ||
+            fixture.fixture?.date ||
             "",
 
           status:
-            match.fixture?.status?.short ||
-            "NS",
+            status || "NS",
 
 
-          // Temporary prediction values
+          // Temporary values
           over05: 90,
           over15: 75,
           over25: 55,
@@ -143,13 +145,27 @@ app.get("/api/matches", async (req, res) => {
           under25: 45,
           under35: 65
 
-        };
+        });
 
-      });
+      }
+
+    }
+
+
+    // Remove duplicate matches
+    const uniqueMatches =
+      Array.from(
+        new Map(
+          matches.map(match => [
+            match.id,
+            match
+          ])
+        ).values()
+      );
 
 
     // Sort by kickoff time
-    matches.sort((a, b) => {
+    uniqueMatches.sort((a, b) => {
 
       return (
         new Date(a.time) -
@@ -163,20 +179,19 @@ app.get("/api/matches", async (req, res) => {
 
       success: true,
 
-      from: from,
+      count: uniqueMatches.length,
 
-      to: to,
-
-      count: matches.length,
-
-      matches: matches
+      matches: uniqueMatches
 
     });
 
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "MATCH ERROR:",
+      error
+    );
 
 
     res.status(500).json({
@@ -196,7 +211,7 @@ app.get("/api/matches", async (req, res) => {
 });
 
 
-// HEALTH CHECK
+// HEALTH
 app.get("/health", (req, res) => {
 
   res.json({
@@ -206,7 +221,7 @@ app.get("/health", (req, res) => {
 });
 
 
-// START SERVER
+// START
 app.listen(PORT, () => {
 
   console.log(
