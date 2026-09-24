@@ -12,187 +12,95 @@ const API_KEY = process.env.API_FOOTBALL_KEY;
 const API_URL = "https://v3.football.api-sports.io";
 
 
-/* ==============================
-   HOME
-============================== */
-
+// HOME
 app.get("/", (req, res) => {
-
   res.json({
     success: true,
     message: "Football Over/Under API is running"
   });
-
 });
 
 
-/* ==============================
-   FORMAT DATE
-============================== */
-
+// FORMAT DATE
 function formatDate(date) {
-
-  const year = date.getUTCFullYear();
-
-  const month =
-    String(date.getUTCMonth() + 1).padStart(2, "0");
-
-  const day =
-    String(date.getUTCDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-
+  return date.toISOString().split("T")[0];
 }
 
 
-/* ==============================
-   GET FIXTURES FOR ONE DATE
-============================== */
-
-async function getFixtures(date) {
-
-  const response = await fetch(
-    `${API_URL}/fixtures?date=${date}&status=NS`,
-    {
-      headers: {
-        "x-apisports-key": API_KEY
-      }
-    }
-  );
-
-
-  if (!response.ok) {
-
-    throw new Error(
-      `Football API returned ${response.status}`
-    );
-
-  }
-
-
-  const data = await response.json();
-
-  return data.response || [];
-
-}
-
-
-/* ==============================
-   MATCHES
-============================== */
-
+// GET UPCOMING MATCHES
 app.get("/api/matches", async (req, res) => {
 
   try {
 
     if (!API_KEY) {
-
       return res.status(500).json({
-
         success: false,
-
-        message:
-          "API_FOOTBALL_KEY is not configured"
-
+        message: "API_FOOTBALL_KEY is not configured"
       });
+    }
+
+
+    const today = new Date();
+
+    const future = new Date(today);
+
+    future.setUTCDate(
+      future.getUTCDate() + 7
+    );
+
+
+    const from = formatDate(today);
+    const to = formatDate(future);
+
+
+    console.log(
+      `Loading fixtures from ${from} to ${to}`
+    );
+
+
+    const url =
+      `${API_URL}/fixtures?from=${from}&to=${to}`;
+
+
+    const response = await fetch(url, {
+      headers: {
+        "x-apisports-key": API_KEY
+      }
+    });
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        `Football API returned ${response.status}`
+      );
 
     }
 
 
-    /*
-      We check today and the next two days.
-
-      This prevents the website from becoming
-      empty when today's football schedule is small.
-    */
-
-    const requestedDate = req.query.date;
+    const data = await response.json();
 
 
-    let startDate;
-
-    if (requestedDate) {
-
-      startDate = new Date(
-        `${requestedDate}T00:00:00Z`
-      );
-
-    } else {
-
-      startDate = new Date();
-
-    }
+    const fixtures =
+      data.response || [];
 
 
-    const allFixtures = [];
-
-
-    for (let i = 0; i < 3; i++) {
-
-      const date = new Date(startDate);
-
-      date.setUTCDate(
-        date.getUTCDate() + i
-      );
-
-
-      const dateString =
-        formatDate(date);
-
-
-      console.log(
-        `Getting fixtures for ${dateString}`
-      );
-
-
-      const fixtures =
-        await getFixtures(dateString);
-
-
-      allFixtures.push(...fixtures);
-
-    }
-
-
-    /*
-      Remove duplicate fixture IDs.
-    */
-
-    const uniqueFixtures =
-      Array.from(
-        new Map(
-          allFixtures.map(
-            fixture => [
-              fixture.fixture.id,
-              fixture
-            ]
-          )
-        ).values()
-      );
-
-
-    /*
-      Only keep matches that have not started.
-    */
-
+    // Only upcoming matches
     const upcoming =
-      uniqueFixtures.filter(fixture => {
+      fixtures.filter(match => {
 
         const status =
-          fixture.fixture?.status?.short;
+          match.fixture?.status?.short;
 
-        return [
-          "NS",
-          "TBD"
-        ].includes(status);
+        return (
+          status === "NS" ||
+          status === "TBD"
+        );
 
       });
 
 
-    /*
-      Convert API data into website format.
-    */
-
+    // Convert API data for website
     const matches =
       upcoming.map(match => {
 
@@ -225,25 +133,14 @@ app.get("/api/matches", async (req, res) => {
             "NS",
 
 
-          /*
-            These are temporary estimates.
-
-            We will replace them with the
-            statistical prediction engine next.
-          */
-
+          // Temporary prediction values
           over05: 90,
-
           over15: 75,
-
           over25: 55,
-
           over35: 35,
 
           under15: 25,
-
           under25: 45,
-
           under35: 65
 
         };
@@ -251,14 +148,13 @@ app.get("/api/matches", async (req, res) => {
       });
 
 
-    /*
-      Sort by match time.
-    */
-
+    // Sort by kickoff time
     matches.sort((a, b) => {
 
-      return new Date(a.time) -
-             new Date(b.time);
+      return (
+        new Date(a.time) -
+        new Date(b.time)
+      );
 
     });
 
@@ -266,6 +162,10 @@ app.get("/api/matches", async (req, res) => {
     res.json({
 
       success: true,
+
+      from: from,
+
+      to: to,
 
       count: matches.length,
 
@@ -276,19 +176,18 @@ app.get("/api/matches", async (req, res) => {
 
   } catch (error) {
 
-    console.error(
-      "MATCH ERROR:",
-      error
-    );
+    console.error(error);
 
 
     res.status(500).json({
 
       success: false,
 
-      message: "Unable to load football matches",
+      message:
+        "Unable to load football matches",
 
-      error: error.message
+      error:
+        error.message
 
     });
 
@@ -297,10 +196,7 @@ app.get("/api/matches", async (req, res) => {
 });
 
 
-/* ==============================
-   HEALTH CHECK
-============================== */
-
+// HEALTH CHECK
 app.get("/health", (req, res) => {
 
   res.json({
@@ -310,10 +206,7 @@ app.get("/health", (req, res) => {
 });
 
 
-/* ==============================
-   START SERVER
-============================== */
-
+// START SERVER
 app.listen(PORT, () => {
 
   console.log(
