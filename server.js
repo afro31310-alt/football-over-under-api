@@ -12,7 +12,10 @@ const API_KEY = process.env.API_FOOTBALL_KEY;
 const API_URL = "https://v3.football.api-sports.io";
 
 
+// ==============================
 // HOME
+// ==============================
+
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -21,23 +24,29 @@ app.get("/", (req, res) => {
 });
 
 
+// ==============================
 // FORMAT DATE
+// ==============================
+
 function formatDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
 
-// GET FIXTURES FOR ONE DATE
+// ==============================
+// GET FIXTURES
+// ==============================
+
 async function getFixtures(date) {
 
-  const url =
-    `${API_URL}/fixtures?date=${date}`;
-
-  const response = await fetch(url, {
-    headers: {
-      "x-apisports-key": API_KEY
+  const response = await fetch(
+    `${API_URL}/fixtures?date=${date}`,
+    {
+      headers: {
+        "x-apisports-key": API_KEY
+      }
     }
-  });
+  );
 
   const data = await response.json();
 
@@ -52,7 +61,10 @@ async function getFixtures(date) {
 }
 
 
+// ==============================
 // MATCHES
+// ==============================
+
 app.get("/api/matches", async (req, res) => {
 
   try {
@@ -60,36 +72,61 @@ app.get("/api/matches", async (req, res) => {
     if (!API_KEY) {
       return res.status(500).json({
         success: false,
-        message: "API_FOOTBALL_KEY is not configured"
+        message: "API_FOOTBALL_KEY is missing"
       });
+    }
+
+
+    /*
+      If a date is supplied:
+
+      /api/matches?date=2026-09-24
+
+      use that exact date.
+
+      Otherwise check today + next 6 days.
+    */
+
+    let dates = [];
+
+
+    if (req.query.date) {
+
+      dates = [req.query.date];
+
+    } else {
+
+      const today = new Date();
+
+      for (let i = 0; i < 7; i++) {
+
+        const date = new Date(today);
+
+        date.setUTCDate(
+          date.getUTCDate() + i
+        );
+
+        dates.push(
+          formatDate(date)
+        );
+
+      }
+
     }
 
 
     const matches = [];
 
-    const today = new Date();
 
-
-    // Check today + next 6 days
-    for (let i = 0; i < 7; i++) {
-
-      const date = new Date(today);
-
-      date.setUTCDate(
-        date.getUTCDate() + i
-      );
-
-      const dateString =
-        formatDate(date);
-
+    for (const date of dates) {
 
       console.log(
-        `Checking ${dateString}`
+        `Checking fixtures for ${date}`
       );
 
 
       const fixtures =
-        await getFixtures(dateString);
+        await getFixtures(date);
 
 
       for (const fixture of fixtures) {
@@ -98,7 +135,10 @@ app.get("/api/matches", async (req, res) => {
           fixture.fixture?.status?.short;
 
 
-        // Only upcoming fixtures
+        /*
+          Keep upcoming fixtures.
+        */
+
         if (
           status !== "NS" &&
           status !== "TBD"
@@ -109,7 +149,8 @@ app.get("/api/matches", async (req, res) => {
 
         matches.push({
 
-          id: fixture.fixture.id,
+          id:
+            fixture.fixture.id,
 
           league:
             fixture.league?.name ||
@@ -135,7 +176,12 @@ app.get("/api/matches", async (req, res) => {
             status || "NS",
 
 
-          // Temporary values
+          /*
+            Temporary prediction percentages.
+            We will replace these with
+            statistical calculations later.
+          */
+
           over05: 90,
           over15: 75,
           over25: 55,
@@ -152,7 +198,10 @@ app.get("/api/matches", async (req, res) => {
     }
 
 
-    // Remove duplicate matches
+    /*
+      Remove duplicates.
+    */
+
     const uniqueMatches =
       Array.from(
         new Map(
@@ -164,7 +213,10 @@ app.get("/api/matches", async (req, res) => {
       );
 
 
-    // Sort by kickoff time
+    /*
+      Sort by kickoff time.
+    */
+
     uniqueMatches.sort((a, b) => {
 
       return (
@@ -179,9 +231,13 @@ app.get("/api/matches", async (req, res) => {
 
       success: true,
 
-      count: uniqueMatches.length,
+      datesChecked: dates,
 
-      matches: uniqueMatches
+      count:
+        uniqueMatches.length,
+
+      matches:
+        uniqueMatches
 
     });
 
@@ -211,7 +267,10 @@ app.get("/api/matches", async (req, res) => {
 });
 
 
-// HEALTH
+// ==============================
+// HEALTH CHECK
+// ==============================
+
 app.get("/health", (req, res) => {
 
   res.json({
@@ -221,7 +280,10 @@ app.get("/health", (req, res) => {
 });
 
 
+// ==============================
 // START
+// ==============================
+
 app.listen(PORT, () => {
 
   console.log(
