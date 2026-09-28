@@ -12,7 +12,10 @@ const API_KEY = process.env.API_FOOTBALL_KEY;
 const API_URL = "https://v3.football.api-sports.io";
 
 
+// ==============================
 // HOME
+// ==============================
+
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -21,23 +24,60 @@ app.get("/", (req, res) => {
 });
 
 
-// GET FIXTURES
-async function getFixtures(date) {
+// ==============================
+// HEALTH
+// ==============================
 
-  const response = await fetch(
-    `${API_URL}/fixtures?date=${date}`,
-    {
-      headers: {
-        "x-apisports-key": API_KEY
-      }
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "OK"
+  });
+});
+
+
+// ==============================
+// GET FIXTURES FROM API-FOOTBALL
+// ==============================
+
+async function getFixtures(from, to) {
+
+  if (!API_KEY) {
+    throw new Error("API_FOOTBALL_KEY is missing");
+  }
+
+  const url =
+    `${API_URL}/fixtures?from=${from}&to=${to}&timezone=UTC`;
+
+  console.log(`Checking fixtures from ${from} to ${to}`);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "x-apisports-key": API_KEY,
+      "Accept": "application/json"
     }
-  );
+  });
 
   const data = await response.json();
 
+  console.log(
+    "API-FOOTBALL results:",
+    data.results
+  );
+
   if (!response.ok) {
     throw new Error(
-      data.message || `API returned ${response.status}`
+      data.message ||
+      `API returned HTTP ${response.status}`
+    );
+  }
+
+  if (data.errors && Object.keys(data.errors).length > 0) {
+    console.error("API errors:", data.errors);
+
+    throw new Error(
+      JSON.stringify(data.errors)
     );
   }
 
@@ -45,86 +85,111 @@ async function getFixtures(date) {
 }
 
 
+// ==============================
+// FORMAT MATCH
+// ==============================
+
+function formatMatch(fixture) {
+
+  const status =
+    fixture.fixture?.status?.short || "NS";
+
+  return {
+
+    id: fixture.fixture?.id,
+
+    league:
+      fixture.league?.name || "Football",
+
+    country:
+      fixture.league?.country || "",
+
+    home:
+      fixture.teams?.home?.name || "Home",
+
+    away:
+      fixture.teams?.away?.name || "Away",
+
+    time:
+      fixture.fixture?.date || "",
+
+    status: status,
+
+    // Current Over/Under estimates
+    over05: 90,
+    over15: 75,
+    over25: 55,
+    over35: 35,
+
+    under15: 25,
+    under25: 45,
+    under35: 65
+  };
+}
+
+
+// ==============================
 // MATCHES
-app.get("/api/matches", async (req, res) => {
+// ==============================
+
+async function matchesHandler(req, res) {
 
   try {
 
     if (!API_KEY) {
+
       return res.status(500).json({
         success: false,
         message: "API_FOOTBALL_KEY is missing"
       });
+
     }
 
-    const matches = [];
-
+    // Today's date
     const today = new Date();
 
-    // Check today and the next 6 days
-    for (let i = 0; i < 7; i++) {
+    const from =
+      today.toISOString().slice(0, 10);
 
-      const date = new Date(today);
+    // 14 days ahead
+    const future =
+      new Date(today);
 
-      date.setDate(date.getDate() + i);
+    future.setDate(
+      future.getDate() + 14
+    );
 
-      const dateString =
-        date.toISOString().slice(0, 10);
+    const to =
+      future.toISOString().slice(0, 10);
 
-      const fixtures =
-        await getFixtures(dateString);
 
-      for (const fixture of fixtures) {
+    // Get fixtures
+    const fixtures =
+      await getFixtures(from, to);
+
+
+    console.log(
+      `API returned ${fixtures.length} fixtures`
+    );
+
+
+    // Keep upcoming fixtures only
+    const matches = fixtures
+      .filter(fixture => {
 
         const status =
           fixture.fixture?.status?.short;
 
-        // Only upcoming matches
-        if (
-          status !== "NS" &&
-          status !== "TBD"
-        ) {
-          continue;
-        }
+        return (
+          status === "NS" ||
+          status === "TBD"
+        );
 
-        matches.push({
-
-          id: fixture.fixture.id,
-
-          league:
-            fixture.league?.name || "Football",
-
-          country:
-            fixture.league?.country || "",
-
-          home:
-            fixture.teams?.home?.name || "Home",
-
-          away:
-            fixture.teams?.away?.name || "Away",
-
-          time:
-            fixture.fixture?.date || "",
-
-          status: status || "NS",
-
-          // Over markets
-          over05: 90,
-          over15: 75,
-          over25: 55,
-          over35: 35,
-
-          // Under markets
-          under15: 25,
-          under25: 45,
-          under35: 65
-
-        });
-      }
-    }
+      })
+      .map(formatMatch);
 
 
-    // Remove duplicate matches
+    // Remove duplicates
     const uniqueMatches =
       Array.from(
         new Map(
@@ -136,18 +201,26 @@ app.get("/api/matches", async (req, res) => {
       );
 
 
-    // Sort by match time
-    uniqueMatches.sort((a, b) => {
-      return (
+    // Sort by kickoff time
+    uniqueMatches.sort(
+      (a, b) =>
         new Date(a.time) -
         new Date(b.time)
-      );
-    });
+    );
+
+
+    console.log(
+      `Upcoming matches available: ${uniqueMatches.length}`
+    );
 
 
     res.json({
 
       success: true,
+
+      from: from,
+
+      to: to,
 
       count:
         uniqueMatches.length,
@@ -160,7 +233,10 @@ app.get("/api/matches", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "MATCH ERROR:",
+      error
+    );
 
     res.status(500).json({
 
@@ -176,20 +252,19 @@ app.get("/api/matches", async (req, res) => {
 
   }
 
-});
+}
 
 
-// HEALTH
-app.get("/health", (req, res) => {
+// Both URLs work
+app.get("/api/matches", matchesHandler);
 
-  res.json({
-    status: "OK"
-  });
-
-});
+app.get("/matches", matchesHandler);
 
 
+// ==============================
 // START SERVER
+// ==============================
+
 app.listen(PORT, () => {
 
   console.log(
