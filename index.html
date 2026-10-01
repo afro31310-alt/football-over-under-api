@@ -1,175 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Football Predictions</title>
+<title>Football Predictions</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    body {
-      font-family: Arial, sans-serif;
-      background: #07111f;
-      color: white;
-      min-height: 100vh;
-    }
+body {
+  font-family: Arial, sans-serif;
+  background: #07111f;
+  color: white;
+  min-height: 100vh;
+}
 
-    header {
-      background: #0d1b2f;
-      padding: 20px 15px;
-      text-align: center;
-      border-bottom: 2px solid #17395f;
-    }
+header {
+  background: #0d1b2f;
+  padding: 22px 15px;
+  text-align: center;
+  border-bottom: 2px solid #17395f;
+}
 
-    header h1 {
-      font-size: 25px;
-      margin-bottom: 7px;
-    }
+header h1 {
+  font-size: 26px;
+  margin-bottom: 7px;
+}
 
-    header p {
-      color: #9fb3c8;
-      font-size: 14px;
-    }
+header p {
+  color: #9fb3c8;
+  font-size: 14px;
+}
 
-    .container {
-      width: 100%;
-      max-width: 800px;
-      margin: auto;
-      padding: 15px;
-    }
+.container {
+  width: 100%;
+  max-width: 850px;
+  margin: auto;
+  padding: 15px;
+}
 
-    .status {
-      background: #10243b;
-      padding: 13px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      text-align: center;
-      font-size: 14px;
-    }
+.status {
+  background: #10243b;
+  padding: 13px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 14px;
+}
 
-    .loading {
-      color: #ffd166;
-    }
+.loading {
+  color: #ffd166;
+}
 
-    .success {
-      color: #55e89a;
-    }
+.success {
+  color: #55e89a;
+}
 
-    .error {
-      color: #ff6b6b;
-    }
+.error {
+  color: #ff6b6b;
+}
 
-    .match {
-      background: #0d1b2f;
-      border: 1px solid #1c3857;
-      border-radius: 14px;
-      margin-bottom: 15px;
-      overflow: hidden;
-    }
+.refresh {
+  width: 100%;
+  border: none;
+  background: #1677ff;
+  color: white;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
 
-    .league {
-      background: #132943;
-      padding: 10px 13px;
-      color: #9fc5e8;
-      font-size: 13px;
-    }
+.match {
+  background: #0d1b2f;
+  border: 1px solid #1c3857;
+  border-radius: 14px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
 
-    .teams {
-      text-align: center;
-      padding: 18px 10px 8px;
-    }
+.league {
+  background: #132943;
+  padding: 11px 13px;
+  color: #9fc5e8;
+  font-size: 13px;
+}
 
-    .teams .home,
-    .teams .away {
-      font-size: 18px;
-      font-weight: bold;
-    }
+.teams {
+  text-align: center;
+  padding: 20px 10px 12px;
+}
 
-    .vs {
-      color: #728aa5;
-      font-size: 13px;
-      margin: 8px 0;
-    }
+.home,
+.away {
+  font-size: 19px;
+  font-weight: bold;
+}
 
-    .time {
-      color: #9fb3c8;
-      font-size: 13px;
-      margin-top: 7px;
-    }
+.vs {
+  color: #728aa5;
+  font-size: 13px;
+  margin: 8px 0;
+}
 
-    .predictions {
-      padding: 12px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
+.time {
+  color: #9fb3c8;
+  font-size: 13px;
+  margin-top: 8px;
+}
 
-    .prediction {
-      background: #12253b;
-      border-radius: 10px;
-      padding: 12px;
-      text-align: center;
-    }
+/* SAFE PICK */
 
-    .prediction .title {
-      color: #9fb3c8;
-      font-size: 12px;
-      margin-bottom: 6px;
-    }
+.safe-pick {
+  margin: 10px 12px 15px;
+  padding: 18px 12px;
+  border-radius: 13px;
+  text-align: center;
+  background: #173d32;
+  border: 1px solid #2e765e;
+}
 
-    .prediction .value {
-      font-size: 21px;
-      font-weight: bold;
-    }
+.safe-title {
+  font-size: 13px;
+  color: #9ee8c8;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
 
-    .high {
-      color: #55e89a;
-    }
+.safe-choice {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
 
-    .medium {
-      color: #ffd166;
-    }
+.safe-confidence {
+  font-size: 14px;
+  color: #b8d9cc;
+}
 
-    .low {
-      color: #ff8585;
-    }
+.predictions {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
 
-    .refresh {
-      width: 100%;
-      border: none;
-      background: #1677ff;
-      color: white;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
+.prediction {
+  background: #12253b;
+  border-radius: 10px;
+  padding: 13px;
+  text-align: center;
+}
 
-    .refresh:active {
-      transform: scale(.98);
-    }
+.prediction .title {
+  color: #9fb3c8;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
 
-    .empty {
-      text-align: center;
-      padding: 30px 10px;
-      color: #9fb3c8;
-    }
+.prediction .value {
+  font-size: 21px;
+  font-weight: bold;
+}
 
-    footer {
-      text-align: center;
-      color: #71849a;
-      font-size: 12px;
-      padding: 25px 10px;
-    }
-  </style>
+.high {
+  color: #55e89a;
+}
+
+.medium {
+  color: #ffd166;
+}
+
+.low {
+  color: #ff8585;
+}
+
+.empty {
+  text-align: center;
+  padding: 30px 10px;
+  color: #9fb3c8;
+}
+
+footer {
+  text-align: center;
+  color: #71849a;
+  font-size: 12px;
+  padding: 25px 10px;
+}
+</style>
 </head>
 
 <body>
@@ -200,23 +224,22 @@
 <script>
 
 const API_URL =
-  "https://football-over-under-api.onrender.com/api/matches";
+"https://football-over-under-api.onrender.com/api/matches";
+
 
 async function loadMatches() {
 
   const status = document.getElementById("status");
-  const matchesContainer =
-    document.getElementById("matches");
+  const container = document.getElementById("matches");
 
   status.className = "status loading";
   status.innerHTML = "⏳ Loading latest matches...";
 
-  matchesContainer.innerHTML = "";
+  container.innerHTML = "";
 
   try {
 
     const response = await fetch(API_URL);
-
     const data = await response.json();
 
     if (!response.ok || !data.success) {
@@ -231,7 +254,7 @@ async function loadMatches() {
       status.innerHTML =
         "No upcoming matches available right now.";
 
-      matchesContainer.innerHTML = `
+      container.innerHTML = `
         <div class="empty">
           No matches found.
         </div>
@@ -247,9 +270,7 @@ async function loadMatches() {
 
     data.matches.forEach(match => {
 
-      const matchHTML = createMatch(match);
-
-      matchesContainer.innerHTML += matchHTML;
+      container.innerHTML += createMatch(match);
 
     });
 
@@ -260,13 +281,11 @@ async function loadMatches() {
     status.className = "status error";
 
     status.innerHTML =
-      "❌ Could not load matches. Please try again.";
+      "❌ Could not load matches.";
 
-    matchesContainer.innerHTML = `
+    container.innerHTML = `
       <div class="empty">
-        <p>Unable to load football matches.</p>
-        <br>
-        <p>Tap "Refresh Matches" to try again.</p>
+        Please tap Refresh Matches and try again.
       </div>
     `;
   }
@@ -291,6 +310,54 @@ function createMatch(match) {
     });
 
 
+  /*
+    We compare the more useful goal-line options.
+
+    Over 0.5 is not used for the SAFE PICK because
+    it would dominate every match with the current
+    percentage model.
+  */
+
+  const options = [
+
+    {
+      name: "Over 1.5",
+      value: Number(match.over15 || 0)
+    },
+
+    {
+      name: "Over 2.5",
+      value: Number(match.over25 || 0)
+    },
+
+    {
+      name: "Over 3.5",
+      value: Number(match.over35 || 0)
+    },
+
+    {
+      name: "Under 1.5",
+      value: Number(match.under15 || 0)
+    },
+
+    {
+      name: "Under 2.5",
+      value: Number(match.under25 || 0)
+    },
+
+    {
+      name: "Under 3.5",
+      value: Number(match.under35 || 0)
+    }
+
+  ];
+
+
+  options.sort((a, b) => b.value - a.value);
+
+  const safe = options[0];
+
+
   return `
 
     <div class="match">
@@ -301,6 +368,7 @@ function createMatch(match) {
           ? " • " + escapeHTML(match.country)
           : ""}
       </div>
+
 
       <div class="teams">
 
@@ -317,7 +385,25 @@ function createMatch(match) {
         </div>
 
         <div class="time">
-          📅 ${dateText} &nbsp; ⏰ ${timeText}
+          📅 ${dateText}
+          &nbsp; ⏰ ${timeText}
+        </div>
+
+      </div>
+
+
+      <div class="safe-pick">
+
+        <div class="safe-title">
+          🛡️ SAFE PICK
+        </div>
+
+        <div class="safe-choice">
+          ${safe.name}
+        </div>
+
+        <div class="safe-confidence">
+          Model confidence: ${safe.value}%
         </div>
 
       </div>
@@ -370,17 +456,20 @@ function createMatch(match) {
 
 function predictionBox(title, value) {
 
+  const number = Number(value || 0);
+
   let className = "medium";
 
-  if (value >= 70) {
+  if (number >= 70) {
     className = "high";
   }
 
-  if (value < 40) {
+  if (number < 40) {
     className = "low";
   }
 
   return `
+
     <div class="prediction">
 
       <div class="title">
@@ -388,10 +477,11 @@ function predictionBox(title, value) {
       </div>
 
       <div class="value ${className}">
-        ${value}%
+        ${number}%
       </div>
 
     </div>
+
   `;
 }
 
@@ -409,10 +499,11 @@ function escapeHTML(text) {
 }
 
 
-// Load automatically when page opens
 loadMatches();
 
 </script>
 
 </body>
 </html>
+
+
