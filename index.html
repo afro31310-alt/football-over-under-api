@@ -1,1 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>Football Predictions</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #07111f;
+      color: white;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0d1b2f;
+      padding: 20px 15px;
+      text-align: center;
+      border-bottom: 2px solid #17395f;
+    }
+
+    header h1 {
+      font-size: 25px;
+      margin-bottom: 7px;
+    }
+
+    header p {
+      color: #9fb3c8;
+      font-size: 14px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: auto;
+      padding: 15px;
+    }
+
+    .status {
+      background: #10243b;
+      padding: 13px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .loading {
+      color: #ffd166;
+    }
+
+    .success {
+      color: #55e89a;
+    }
+
+    .error {
+      color: #ff6b6b;
+    }
+
+    .match {
+      background: #0d1b2f;
+      border: 1px solid #1c3857;
+      border-radius: 14px;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+
+    .league {
+      background: #132943;
+      padding: 10px 13px;
+      color: #9fc5e8;
+      font-size: 13px;
+    }
+
+    .teams {
+      text-align: center;
+      padding: 18px 10px 8px;
+    }
+
+    .teams .home,
+    .teams .away {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .vs {
+      color: #728aa5;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+
+    .time {
+      color: #9fb3c8;
+      font-size: 13px;
+      margin-top: 7px;
+    }
+
+    .predictions {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .prediction {
+      background: #12253b;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .prediction .title {
+      color: #9fb3c8;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .prediction .value {
+      font-size: 21px;
+      font-weight: bold;
+    }
+
+    .high {
+      color: #55e89a;
+    }
+
+    .medium {
+      color: #ffd166;
+    }
+
+    .low {
+      color: #ff8585;
+    }
+
+    .refresh {
+      width: 100%;
+      border: none;
+      background: #1677ff;
+      color: white;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+
+    .refresh:active {
+      transform: scale(.98);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px 10px;
+      color: #9fb3c8;
+    }
+
+    footer {
+      text-align: center;
+      color: #71849a;
+      font-size: 12px;
+      padding: 25px 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>⚽ Football Predictions</h1>
+  <p>Live upcoming matches & predictions</p>
+</header>
+
+<div class="container">
+
+  <div id="status" class="status loading">
+    Loading matches...
+  </div>
+
+  <button class="refresh" onclick="loadMatches()">
+    🔄 Refresh Matches
+  </button>
+
+  <div id="matches"></div>
+
+</div>
+
+<footer>
+  Data provided by football-data.org
+</footer>
+
+<script>
+
+const API_URL =
+  "https://football-over-under-api.onrender.com/api/matches";
+
+async function loadMatches() {
+
+  const status = document.getElementById("status");
+  const matchesContainer =
+    document.getElementById("matches");
+
+  status.className = "status loading";
+  status.innerHTML = "⏳ Loading latest matches...";
+
+  matchesContainer.innerHTML = "";
+
+  try {
+
+    const response = await fetch(API_URL);
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Unable to load matches"
+      );
+    }
+
+    if (!data.matches || data.matches.length === 0) {
+
+      status.className = "status";
+      status.innerHTML =
+        "No upcoming matches available right now.";
+
+      matchesContainer.innerHTML = `
+        <div class="empty">
+          No matches found.
+        </div>
+      `;
+
+      return;
+    }
+
+    status.className = "status success";
+
+    status.innerHTML =
+      `✅ ${data.count} upcoming matches available`;
+
+    data.matches.forEach(match => {
+
+      const matchHTML = createMatch(match);
+
+      matchesContainer.innerHTML += matchHTML;
+
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.className = "status error";
+
+    status.innerHTML =
+      "❌ Could not load matches. Please try again.";
+
+    matchesContainer.innerHTML = `
+      <div class="empty">
+        <p>Unable to load football matches.</p>
+        <br>
+        <p>Tap "Refresh Matches" to try again.</p>
+      </div>
+    `;
+  }
+}
+
+
+function createMatch(match) {
+
+  const date = new Date(match.time);
+
+  const dateText =
+    date.toLocaleDateString([], {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+
+  const timeText =
+    date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+
+  return `
+
+    <div class="match">
+
+      <div class="league">
+        🏆 ${escapeHTML(match.league)}
+        ${match.country
+          ? " • " + escapeHTML(match.country)
+          : ""}
+      </div>
+
+      <div class="teams">
+
+        <div class="home">
+          ${escapeHTML(match.home)}
+        </div>
+
+        <div class="vs">
+          VS
+        </div>
+
+        <div class="away">
+          ${escapeHTML(match.away)}
+        </div>
+
+        <div class="time">
+          📅 ${dateText} &nbsp; ⏰ ${timeText}
+        </div>
+
+      </div>
+
+
+      <div class="predictions">
+
+        ${predictionBox(
+          "Over 0.5",
+          match.over05
+        )}
+
+        ${predictionBox(
+          "Over 1.5",
+          match.over15
+        )}
+
+        ${predictionBox(
+          "Over 2.5",
+          match.over25
+        )}
+
+        ${predictionBox(
+          "Over 3.5",
+          match.over35
+        )}
+
+        ${predictionBox(
+          "Under 1.5",
+          match.under15
+        )}
+
+        ${predictionBox(
+          "Under 2.5",
+          match.under25
+        )}
+
+        ${predictionBox(
+          "Under 3.5",
+          match.under35
+        )}
+
+      </div>
+
+    </div>
+
+  `;
+}
+
+
+function predictionBox(title, value) {
+
+  let className = "medium";
+
+  if (value >= 70) {
+    className = "high";
+  }
+
+  if (value < 40) {
+    className = "low";
+  }
+
+  return `
+    <div class="prediction">
+
+      <div class="title">
+        ${title}
+      </div>
+
+      <div class="value ${className}">
+        ${value}%
+      </div>
+
+    </div>
+  `;
+}
+
+
+function escapeHTML(text) {
+
+  if (!text) return "";
+
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+// Load automatically when page opens
+loadMatches();
+
+</script>
+
+</body>
+</html>
